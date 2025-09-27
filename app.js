@@ -1,77 +1,48 @@
-import express from "express"; // Importing express for the web framework
-import bodyParser from "body-parser"; // Importing bodyParser for parsing request bodies
-import ejsLayouts from "express-ejs-layouts"; // Importing express-ejs-layouts for layout support
-import path from "path"; // Importing express-ejs-layouts for layout support
-import dotenv from "dotenv"; // Importing dotenv to load environment variables
-import session from "express-session"; // Importing express-session for session management
-import passport from "passport"; // Importing passport for authentication
-import { Strategy as GoogleStrategy } from "passport-google-oauth20"; // Importing Google OAuth 2.0 strategy for passport
+// app.js
+import express from "express";
+import session from "express-session";
+import dotenv from "dotenv";
+import expressLayouts from "express-ejs-layouts";
+import path from "path";
+import { fileURLToPath } from "url";
 
-import { connectUsingMongoose } from "./config/mongodb.js"; // Importing MongoDB connection function
-import router from "./routes/routes.js"; // Importing main application routes
-import authrouter from "./routes/authRoutes.js"; // Importing authentication routes
+import { connectUsingMongoose } from "./config/mongodb.js";
+import passport from "./config/passport.js";        // <-- import cấu hình passport
+import userRouter from "./routes/routes.js";
+import authRouter from "./routes/authRoutes.js";
+import injectStudent from "./middlewares/studentInfo.js";
 
-dotenv.config(); // Loading environment variables from .env file
-const app = express(); // Initializing express application
+dotenv.config();
+const app = express();
 
-//SESSION
-app.use(
-  session({
-    secret: "SecretKey",
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false },
-  })
-);
+// view + static
+app.set("view engine", "ejs");
+app.set("layout", "layout");
+app.use(expressLayouts);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use(express.static(path.join(__dirname, "public")));
 
-//MIDDLEWARE
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
-//Passport
-app.use(passport.initialize());
-app.use(passport.session());
+// session trước, rồi passport
+app.use(session({
+  secret: process.env.SESSION_SECRET || "dev-secret",
+  resave: false,
+  saveUninitialized: false,
+}));
+app.use(passport.initialize());   // <-- bắt buộc
+app.use(passport.session());      // <-- bắt buộc
 
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID: process.env.CLIENT_ID,
-      clientSecret: process.env.CLIENT_SECRET,
-      callbackURL:
-        "https://nodejs-authentication-system-l2pu.onrender.com/auth/google/callback",
-      scope: ["profile", "email"],
-    },
-    function (accessToken, refreshToken, profile, callback) {
-      callback(null, profile);
-    }
-  )
-);
+app.use(injectStudent);
 
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
+await connectUsingMongoose();
 
-passport.deserializeUser((user, done) => {
-  done(null, user);
-});
+app.use("/user", userRouter);
+app.use("/auth", authRouter);
 
-// Set Templates
-app.set("view engine", "ejs"); // Define template engine
-app.use(ejsLayouts); // Use base template
-app.set("views", path.join(path.resolve(), "views")); // Define template directory
+app.get("/", (req, res) => res.redirect("/user/signin"));
 
-// DB Connection
-connectUsingMongoose();
-
-//ROUTES
-app.get("/", (req, res) => {
-  res.send("Hey Ninja ! Go to /user/signin for the login page.");
-});
-app.use("/user", router);
-app.use("/auth", authrouter);
-app.use(express.static("public"));
-
-//LISTEN
-app.listen(process.env.PORT, () => {
-  console.log(`Server is running on port ${process.env.PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`http://localhost:${PORT}`));
