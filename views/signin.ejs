@@ -5,20 +5,9 @@
   <% } %>
   <form action="/user/signin" method="post">
     <input type="email" name="email" placeholder="Email" required /><br /><br />
-    <input
-      type="password"
-      name="password"
-      placeholder="Password"
-      required
-    /><br /><br />
-    <div
-      class="g-recaptcha"
-      data-sitekey="6LflLRIqAAAAAHrbmeUx3WThRxp7On8iAQQOIQWH"
-    ></div>
-    <button
-      type="submit"
-      class="btn btn-light"
-    >
+    <input type="password" name="password" placeholder="Password" required /><br /><br />
+    <div class="g-recaptcha" data-sitekey="6Ld25dUrAAAAABDeB01NsmpWSZvgu4_zU7V5n2k1"></div>
+    <button type="submit" class="btn btn-light">
       Sign In
     </button>
   </form>
@@ -28,6 +17,6 @@
 
   <!-- Link to forgot password page -->
   <a href="/user/forgot-password"><strong>Forgot Password?</strong></a><br>
-  
+
   <p><strong>Don't have an account?</strong> &nbsp; <a href="/user/signup"><strong>Sign up</strong></a></p>
 </section>

@@ -1,26 +1,30 @@
-import passport from 'passport';  // Importing passport for authentication
-import express from 'express';    // Importing express for the web framework
-import { googleSignInController } from '../controllers/authController.js';  // Importing the Google sign-in controller
-import dotenv from 'dotenv';      // Importing dotenv to load environment variables
+// routes/authRoutes.js
+import { Router } from "express";
+import passport from "../config/passport.js"; // <-- import này rất quan trọng!
+import { googleSignInController } from "../controllers/authController.js";
 
-dotenv.config();  // Loading environment variables from .env file
+const router = Router();
 
-const authRouter = express.Router(); // Creating an instance of express Router for handling authentication routes
-const googleSignIn = new googleSignInController(); // Creating an instance of GoogleSignInController
-
-// OAuth2 login with Google
-authRouter.get("/google", passport.authenticate('google', { scope: ['email', 'profile'] }));
-
-// Google OAuth2 callback
-authRouter.get("/google/callback",
-    passport.authenticate("google", {
-        successRedirect: process.env.CLIENT_URL,
-        failureRedirect: "/login/failed"
-    })
+// Bắt đầu flow Google OAuth
+router.get(
+    "/google",
+    passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
-// Routes for handling login success and failure
-authRouter.get("/login/success", googleSignIn.signInSuccess);
-authRouter.get("/login/failed", googleSignIn.signInFailed);
+// Callback từ Google → xác thực
+router.get(
+    "/google/callback",
+    passport.authenticate("google", { failureRedirect: "/auth/login/failed" }),
+    // Nếu thành công thì gọi controller render homepage, set session...
+    (req, res) => new googleSignInController().signInSuccess(req, res)
+);
 
-export default authRouter; // Exporting the Auth Router
+// Trang success / failed (nếu bạn có dùng)
+router.get("/login/success", (req, res) => {
+    return new googleSignInController().signInSuccess(req, res);
+});
+router.get("/login/failed", (req, res) => {
+    return new googleSignInController().signInFailed(req, res);
+});
+
+export default router;
